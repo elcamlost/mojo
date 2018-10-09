@@ -175,6 +175,7 @@ sub render {
   # Rendering to string
   local @{$stash}{keys %$args} if $ts || $maybe;
   delete @{$stash}{qw(layout extends)} if $ts;
+  $args->{handler} //= $_ for (grep { exists $args->{$_} } qw/json text data/);
 
   # All other arguments just become part of the stash
   @$stash{keys %$args} = values %$args;

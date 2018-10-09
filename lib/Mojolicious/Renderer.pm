@@ -22,6 +22,23 @@ my $TEMPLATES = Mojo::Home->new->mojo_lib_dir->child('Mojolicious', 'resources',
 
 sub DESTROY { Mojo::Util::_teardown($_) for @{shift->{namespaces}} }
 
+sub new {
+  shift->SUPER::new(@_)->add_handler(data => sub {
+    my ($renderer, $c, $output, $options) = @_;
+    my $stash = $c->stash;
+    $$output = delete $stash->{data};
+  })->add_handler(text => sub {
+    my ($renderer, $c, $output, $options) = @_;
+    my $stash = $c->stash;
+    $$output = _maybe($options->{encoding}, delete $stash->{text});
+  })->add_handler(json => sub {
+    my ($renderer, $c, $output, $options) = @_;
+    my $stash = $c->stash;
+    $$output = encode_json(delete $stash->{json});
+    $options->{format} = 'json';
+  });
+}
+
 sub accepts {
   my ($self, $c) = (shift, shift);
 
@@ -83,16 +100,6 @@ sub render {
   my $inline = $options->{inline} = delete $stash->{inline};
   $options->{handler} //= $self->default_handler if defined $inline;
   $options->{format} = $stash->{format} || $self->default_format;
-
-  # Data
-  return delete $stash->{data}, $options->{format} if defined $stash->{data};
-
-  # Text
-  return _maybe($options->{encoding}, delete $stash->{text}), $options->{format}
-    if defined $stash->{text};
-
-  # JSON
-  return encode_json(delete $stash->{json}), 'json' if exists $stash->{json};
 
   # Template or templateless handler
   $options->{template} //= $self->template_for($c);
