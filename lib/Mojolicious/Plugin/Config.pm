@@ -2,7 +2,7 @@ package Mojolicious::Plugin::Config;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use Mojo::File 'path';
-use Mojo::Util 'decode';
+use Mojo::Util qw(decode merge_hashes);
 
 sub load { $_[0]->parse(decode('UTF-8', path($_[1])->slurp), @_[1, 2, 3]) }
 
@@ -50,8 +50,14 @@ sub register {
   }
 
   # Merge everything
-  $config = {%$config, %{$self->load($mode, $conf, $app)}} if $mode;
-  $config = {%{$conf->{default}}, %$config} if $conf->{default};
+  if ($conf->{deep_merge}) {
+    $config = merge_hashes($config, $self->load($mode, $conf, $app)) if $mode;
+    $config = merge_hashes($conf->{default}, $config) if $conf->{default};
+  }
+  else {
+    $config = {%$config, %{$self->load($mode, $conf, $app)}} if $mode;
+    $config = {%{$conf->{default}}, %$config} if $conf->{default};
+  }
   return $app->config($config)->config;
 }
 

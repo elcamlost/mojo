@@ -15,7 +15,7 @@ use Mojo::Util
   qw(html_unescape html_attr_unescape md5_bytes md5_sum monkey_patch),
   qw(punycode_decode punycode_encode quote secure_compare sha1_bytes sha1_sum),
   qw(slugify split_cookie_header split_header steady_time tablify term_escape),
-  qw(trim unindent unquote url_escape url_unescape xml_escape xor_encode);
+  qw(trim unindent unquote url_escape url_unescape xml_escape xor_encode merge_hashes);
 
 # camelize
 is camelize('foo_bar_baz'), 'FooBarBaz', 'right camelized result';
@@ -457,6 +457,33 @@ is xor_encode("\x10\x1d\x14\x14\x17\x58\x0f\x17\x0a\x14\x1c", 'x'),
   'hello world', 'right result';
 is xor_encode('hello', '123456789'), "\x59\x57\x5f\x58\x5a", 'right result';
 is xor_encode("\x59\x57\x5f\x58\x5a", '123456789'), 'hello', 'right result';
+
+# merge_hashes
+is_deeply merge_hashes({a => 1}, {a => 100, b => 2}), {a => 100, b => 2},
+  'right result';
+is_deeply merge_hashes(
+  {a => 1, c => 3,   d => {i => 2}, r => {}},
+  {b => 2, a => 100, d => {l => 4}}
+  ),
+  {a => 100, b => 2, c => 3, d => {i => 2, l => 4}, r => {}}, 'right result';
+is_deeply merge_hashes({a => 1}, {a => 2}, {a => 3}, {a => 4}, {a => 5}),
+  {a => 5}, 'right result';
+is_deeply merge_hashes({a => 1, b => []}, {a => 2}, {a => 3}, {a => 4},
+  {a => 5}), {a => 5, b => []}, 'right result';
+is_deeply merge_hashes(
+  {a => 1,                     b => [3]},
+  {a => 2}, {a => 3}, {a => 4, b => [8]},
+  {a => 5}
+  ),
+  {a => 5, b => [8]}, 'right result';
+is_deeply merge_hashes({a => 1}, {b => 2}, {c => 3}, {d => 4}, {e => 5}),
+  {a => 1, b => 2, c => 3, d => 4, e => 5}, 'right result';
+
+my $left   = {foo => {bar => 2}};
+my $merged = merge_hashes($left, {baz => 4});
+$left->{foo}{bar} = 3;
+$left->{foo}{aaa} = 5;
+is_deeply $merged, {foo => {bar => 2}, baz => 4}, 'right result';
 
 # steady_time
 like steady_time, qr/^[\d.]+$/, 'high resolution time';

@@ -15,6 +15,7 @@ use List::Util 'min';
 use MIME::Base64 qw(decode_base64 encode_base64);
 use Pod::Usage 'pod2usage';
 use Sub::Util 'set_subname';
+use Storable 'dclone';
 use Symbol 'delete_package';
 use Time::HiRes        ();
 use Unicode::Normalize ();
@@ -68,7 +69,7 @@ our @EXPORT_OK = (
   qw(monkey_patch punycode_decode punycode_encode quote secure_compare),
   qw(sha1_bytes sha1_sum slugify split_cookie_header split_header steady_time),
   qw(tablify term_escape trim unindent unquote url_escape url_unescape),
-  qw(xml_escape xor_encode)
+  qw(xml_escape xor_encode merge_hashes)
 );
 
 # Aliases
@@ -378,6 +379,28 @@ sub xor_encode {
   $output .= $buffer ^ $key
     while length($buffer = substr($input, 0, $len, '')) == $len;
   return $output .= $buffer ^ substr($key, 0, length $buffer, '');
+}
+
+sub merge_hashes {
+  my ($left, @right) = @_;
+
+  my %merged = %{dclone $left };
+  return \%merged unless @right;
+
+  for my $right (@right) {
+    for my $key (keys %$right) {
+      my $right_ref = ref $right->{$key} eq 'HASH';
+      my $left_ref  = ref $left->{$key} eq 'HASH';
+      if ($right_ref and $left_ref) {
+        $merged{$key} = merge_hashes($left->{$key}, $right->{$key});
+      }
+      else {
+        $merged{$key} = $right->{$key};
+      }
+    }
+  }
+
+  return \%merged;
 }
 
 sub _adapt {
