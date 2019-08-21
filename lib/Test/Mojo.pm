@@ -14,6 +14,8 @@ use Mojo::JSON::Pointer;
 use Mojo::Server;
 use Mojo::UserAgent;
 use Mojo::Util qw(decode encode);
+use Module::Loaded ();
+
 use Test::More ();
 
 has [qw(message success tx)];
@@ -22,6 +24,9 @@ has ua =>
 
 # Silent or loud tests
 $ENV{MOJO_LOG_LEVEL} ||= $ENV{HARNESS_IS_VERBOSE} ? 'debug' : 'fatal';
+
+# Detect Test2
+my $test_module = Module::Loaded::is_loaded('Test2::V0') ? 'Test2::V0' : 'Test::More';
 
 sub app {
   my ($self, $app) = @_;
@@ -403,7 +408,9 @@ sub _request_ok {
 sub _test {
   my ($self, $name, @args) = @_;
   local $Test::Builder::Level = $Test::Builder::Level + 2;
-  return $self->success(!!Test::More->can($name)->(@args));
+  $name =~ s/is_deeply/is/ if $test_module eq 'Test2::V0';
+
+  return $self->success(!!$test_module->can($name)->(@args));
 }
 
 sub _text {
