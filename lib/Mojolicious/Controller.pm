@@ -147,7 +147,7 @@ sub render {
   local $stash->{extends} = $stash->{extends} if exists $stash->{extends};
 
   # Rendering to string
-  local @{$stash}{keys %$args} if $ts || $maybe;
+  local @{$stash}{keys %$args}         if $ts || $maybe;
   delete @{$stash}{qw(layout extends)} if $ts;
   $args->{handler} //= $_ for (grep { exists $args->{$_} } qw/json text data/);
 
